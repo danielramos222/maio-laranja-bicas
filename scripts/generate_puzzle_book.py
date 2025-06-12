@@ -3,6 +3,16 @@ from dataclasses import dataclass
 from typing import List
 import matplotlib.pyplot as plt
 
+# Bright color palette for a cheerful look
+COLOR_PALETTE = [
+    "#FF6B6B",
+    "#F7B801",
+    "#6BCB77",
+    "#4D96FF",
+    "#FFADAD",
+    "#9D4EDD",
+]
+
 @dataclass
 class Puzzle:
     title: str
@@ -64,14 +74,29 @@ def draw_logic_4x4_compact_clues(ax, puzzle: Puzzle, y_origin: float):
     ax.axis("off")
     ax.text(0, y_origin + 0.32, puzzle.title, fontsize=12, weight="bold", transform=ax.transAxes)
     table_data = [[""] + puzzle.items] + [[cat] + ["[ ]"] * len(puzzle.items) for cat in puzzle.categories]
-    table = ax.table(cellText=table_data, colWidths=[0.15] * 5,
-                     cellLoc="center", loc="upper left", bbox=[0, y_origin, 1, 0.2])
+    table = ax.table(
+        cellText=table_data,
+        colWidths=[0.15] * 5,
+        cellLoc="center",
+        loc="upper left",
+        bbox=[0, y_origin, 1, 0.2],
+    )
     for key, cell in table.get_celld().items():
         cell.set_linewidth(1)
         if key[0] == 0 or key[1] == 0:
             cell.set_text_props(weight="bold", fontsize=10)
+            cell.set_facecolor("#F0F0F0")
+        else:
+            cell.set_facecolor(random.choice(COLOR_PALETTE))
     for i, clue in enumerate(puzzle.clues):
-        ax.text(0, y_origin - 0.05 - 0.035 * i, f"- {clue}", fontsize=9, ha="left", transform=ax.transAxes)
+        ax.text(
+            0,
+            y_origin - 0.05 - 0.025 * i,
+            f"- {clue}",
+            fontsize=9,
+            ha="left",
+            transform=ax.transAxes,
+        )
 
 
 def generate_book(num_puzzles: int, output_path: str):
