@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Desenho com a Mão</title>
+  <style>
+    body,html {margin:0; padding:0; overflow:hidden; background:#000;}
+    video {display:none;}
+    canvas {position:fixed; top:0; left:0; width:100vw; height:100vh;}
+    #drawCanvas {pointer-events:none;}
+    #info {position:fixed; bottom:10px; left:10px; color:#fff; font-family:sans-serif;}
+  </style>
+</head>
+<body>
+  <video id="video" playsinline></video>
+  <canvas id="videoCanvas"></canvas>
+  <canvas id="drawCanvas"></canvas>
+  <div id="info">Pressione 'C' para limpar</div>
+  <script type="module">
+    import {Hands} from 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+    import {Camera} from 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js';
+
+    const videoElement = document.getElementById('video');
+    const videoCanvas = document.getElementById('videoCanvas');
+    const drawCanvas = document.getElementById('drawCanvas');
+    const videoCtx = videoCanvas.getContext('2d');
+    const drawCtx = drawCanvas.getContext('2d');
+
+    function resize() {
+      videoCanvas.width = drawCanvas.width = window.innerWidth;
+      videoCanvas.height = drawCanvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+
+    const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
+
+    hands.onResults(results => {
+      videoCtx.save();
+      videoCtx.clearRect(0,0,videoCanvas.width,videoCanvas.height);
+      videoCtx.drawImage(results.image, 0, 0, videoCanvas.width, videoCanvas.height);
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length) {
+        const {x, y} = results.multiHandLandmarks[0][8];
+        const cx = x * drawCanvas.width;
+        const cy = y * drawCanvas.height;
+
+        if (!drawing) { lastX = cx; lastY = cy; drawing = true; }
+
+        drawCtx.beginPath();
+        drawCtx.strokeStyle = 'red';
+        drawCtx.lineWidth = 5;
+        drawCtx.lineJoin = 'round';
+        drawCtx.moveTo(lastX, lastY);
+        drawCtx.lineTo(cx, cy);
+        drawCtx.stroke();
+
+        lastX = cx; lastY = cy;
+      } else {
+        drawing = false;
+      }
+      videoCtx.restore();
+    });
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => { await hands.send({image: videoElement}); },
+      width: 1280,
+      height: 720
+    });
+    camera.start();
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'c') {
+        drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+      }
+    });
+  </script>
+</body>
+</html>
